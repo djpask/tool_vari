@@ -1,10 +1,13 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QMessageBox
 import PyPDF2
+import configparser
+import os
 
 class PDFPasswordRemover(QWidget):
     def __init__(self):
         super().__init__()
+        self.config_file = 'config_pdf_free_password.ini'
         self.initUI()
 
     def initUI(self):
@@ -19,11 +22,26 @@ class PDFPasswordRemover(QWidget):
         self.password_entry.setEchoMode(QLineEdit.Password)
         layout.addWidget(self.password_entry)
 
+        self.load_password()
+
         self.remove_button = QPushButton('Seleziona PDF e Rimuovi Password')
         self.remove_button.clicked.connect(self.remove_password)
         layout.addWidget(self.remove_button)
 
         self.setLayout(layout)
+
+    def load_password(self):
+        config = configparser.ConfigParser()
+        if os.path.exists(self.config_file):
+            config.read(self.config_file)
+            if 'PDF' in config and 'password' in config['PDF']:
+                self.password_entry.setText(config['PDF']['password'])
+
+    def save_password(self, password):
+        config = configparser.ConfigParser()
+        config['PDF'] = {'password': password}
+        with open(self.config_file, 'w') as configfile:
+            config.write(configfile)
 
     def remove_password(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Seleziona PDF", "", "PDF files (*.pdf)")
@@ -34,6 +52,8 @@ class PDFPasswordRemover(QWidget):
         if not password:
             QMessageBox.critical(self, "Errore", "Inserisci la password del PDF.")
             return
+
+        self.save_password(password)
 
         try:
             with open(file_path, "rb") as file:
