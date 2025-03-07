@@ -7,7 +7,7 @@ def remove_password():
     if not file_path:
         return
 
-    password = password_entry.get(show="DGNPQL76M14L259C")
+    password = password_entry.get()
     password="DGNPQL76M14L259C"
     if not password:
         messagebox.showerror("Errore", "Inserisci la password del PDF.")
