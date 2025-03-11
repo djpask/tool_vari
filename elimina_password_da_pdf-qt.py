@@ -45,6 +45,7 @@ class PDFPasswordRemover(QWidget):
 
     def remove_password(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Seleziona PDF", "", "PDF files (*.pdf)")
+        
         if not file_path:
             return
 
@@ -64,7 +65,14 @@ class PDFPasswordRemover(QWidget):
                     for page_num in range(len(reader.pages)):
                         writer.add_page(reader.pages[page_num])
 
-                    output_path, _ = QFileDialog.getSaveFileName(self, "Salva PDF", "", "PDF files (*.pdf)")
+                    #output_path, _ = QFileDialog.getSaveFileName(self, "Salva PDF", "", "PDF files (*.pdf)")
+                    
+                    if ".PDF" in file_path:
+                        file_path=file_path.replace(".PDF","_no_password.pdf")
+                    elif ".pdf" in file_path:
+                        file_path=file_path.replace(".pdf","_no_password.pdf")
+                            
+                    output_path, _ = QFileDialog.getSaveFileName(self, "Salva PDF", file_path, "PDF files (*.pdf)")
                     if output_path:
                         with open(output_path, "wb") as output_file:
                             writer.write(output_file)
