@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdi
 import PyPDF2
 import configparser
 import os
+from PyQt5.QtCore import Qt
 
 class PDFPasswordRemover(QWidget):
     def __init__(self):
@@ -12,6 +13,7 @@ class PDFPasswordRemover(QWidget):
 
     def initUI(self):
         self.setWindowTitle('Rimuovi Password da PDF')
+        self.setAcceptDrops(True)  # Enable drag and drop
 
         layout = QVBoxLayout()
 
@@ -43,12 +45,17 @@ class PDFPasswordRemover(QWidget):
         with open(self.config_file, 'w') as configfile:
             config.write(configfile)
 
-    def remove_password(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Seleziona PDF", "", "PDF files (*.pdf)")
-        
-        if not file_path:
-            return
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
 
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            file_path = url.toLocalFile()
+            if file_path.endswith('.pdf'):
+                self.process_pdf(file_path)
+
+    def process_pdf(self, file_path):
         password = self.password_entry.text()
         if not password:
             QMessageBox.critical(self, "Errore", "Inserisci la password del PDF.")
@@ -65,13 +72,11 @@ class PDFPasswordRemover(QWidget):
                     for page_num in range(len(reader.pages)):
                         writer.add_page(reader.pages[page_num])
 
-                    #output_path, _ = QFileDialog.getSaveFileName(self, "Salva PDF", "", "PDF files (*.pdf)")
-                    
                     if ".PDF" in file_path:
-                        file_path=file_path.replace(".PDF","_no_password.pdf")
+                        file_path = file_path.replace(".PDF", "_no_password.pdf")
                     elif ".pdf" in file_path:
-                        file_path=file_path.replace(".pdf","_no_password.pdf")
-                            
+                        file_path = file_path.replace(".pdf", "_no_password.pdf")
+
                     output_path, _ = QFileDialog.getSaveFileName(self, "Salva PDF", file_path, "PDF files (*.pdf)")
                     if output_path:
                         with open(output_path, "wb") as output_file:
@@ -81,6 +86,11 @@ class PDFPasswordRemover(QWidget):
                     QMessageBox.information(self, "Informazione", "Il file PDF non è protetto da password.")
         except Exception as e:
             QMessageBox.critical(self, "Errore", f"Si è verificato un errore: {e}")
+
+    def remove_password(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Seleziona PDF", "", "PDF files (*.pdf)")
+        if file_path:
+            self.process_pdf(file_path)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
