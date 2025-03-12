@@ -1,3 +1,11 @@
 config_pdf_free_password.ini
 esempio.pdf
+esempio.json
 da_estratti.xlsx
+*.pdf
+*.json
+*.xlsx
+*.csv
+*.txt
+*.log
+*.zip
