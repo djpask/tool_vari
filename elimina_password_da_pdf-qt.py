@@ -1,3 +1,5 @@
+# v1436
+
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QMessageBox, QPlainTextEdit
 from PyQt5.QtCore import Qt
