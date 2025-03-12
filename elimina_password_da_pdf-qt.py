@@ -1,9 +1,28 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QMessageBox, QFrame
 import PyPDF2
 import configparser
 import os
 from PyQt5.QtCore import Qt
+
+class DragDropArea(QFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setFrameStyle(QFrame.Box | QFrame.Plain)
+        self.setLineWidth(2)
+        self.setAcceptDrops(True)
+        self.setFixedHeight(100)
+        self.setStyleSheet("background-color: #f0f0f0;")
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            file_path = url.toLocalFile()
+            if file_path.endswith('.pdf'):
+                self.parent().process_pdf(file_path)
 
 class PDFPasswordRemover(QWidget):
     def __init__(self):
@@ -13,7 +32,6 @@ class PDFPasswordRemover(QWidget):
 
     def initUI(self):
         self.setWindowTitle('Rimuovi Password da PDF')
-        self.setAcceptDrops(True)  # Enable drag and drop
 
         layout = QVBoxLayout()
 
@@ -30,6 +48,9 @@ class PDFPasswordRemover(QWidget):
         self.remove_button.clicked.connect(self.remove_password)
         layout.addWidget(self.remove_button)
 
+        self.drag_drop_area = DragDropArea(self)
+        layout.addWidget(self.drag_drop_area)
+
         self.setLayout(layout)
 
     def load_password(self):
@@ -44,16 +65,6 @@ class PDFPasswordRemover(QWidget):
         config['PDF'] = {'password': password}
         with open(self.config_file, 'w') as configfile:
             config.write(configfile)
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    def dropEvent(self, event):
-        for url in event.mimeData().urls():
-            file_path = url.toLocalFile()
-            if file_path.endswith('.pdf'):
-                self.process_pdf(file_path)
 
     def process_pdf(self, file_path):
         password = self.password_entry.text()
