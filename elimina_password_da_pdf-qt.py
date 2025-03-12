@@ -1,28 +1,9 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QMessageBox, QFrame
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QMessageBox, QPlainTextEdit
+from PyQt5.QtCore import Qt
 import PyPDF2
 import configparser
 import os
-from PyQt5.QtCore import Qt
-
-class DragDropArea(QFrame):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setFrameStyle(QFrame.Box | QFrame.Plain)
-        self.setLineWidth(2)
-        self.setAcceptDrops(True)
-        self.setFixedHeight(100)
-        self.setStyleSheet("background-color: #f0f0f0;")
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    def dropEvent(self, event):
-        for url in event.mimeData().urls():
-            file_path = url.toLocalFile()
-            if file_path.endswith('.pdf'):
-                self.parent().process_pdf(file_path)
 
 class PDFPasswordRemover(QWidget):
     def __init__(self):
@@ -48,8 +29,11 @@ class PDFPasswordRemover(QWidget):
         self.remove_button.clicked.connect(self.remove_password)
         layout.addWidget(self.remove_button)
 
-        self.drag_drop_area = DragDropArea(self)
-        layout.addWidget(self.drag_drop_area)
+        self.drop_area = QPlainTextEdit('Trascina qui il PDF protetto da password')
+        self.drop_area.setReadOnly(True)
+        self.drop_area.setAcceptDrops(True)
+        self.drop_area.setStyleSheet("background-color: lightgray;")
+        layout.addWidget(self.drop_area)
 
         self.setLayout(layout)
 
@@ -66,7 +50,12 @@ class PDFPasswordRemover(QWidget):
         with open(self.config_file, 'w') as configfile:
             config.write(configfile)
 
-    def process_pdf(self, file_path):
+    def remove_password(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Seleziona PDF", "", "PDF files (*.pdf)")
+        
+        if not file_path:
+            return
+
         password = self.password_entry.text()
         if not password:
             QMessageBox.critical(self, "Errore", "Inserisci la password del PDF.")
@@ -74,6 +63,9 @@ class PDFPasswordRemover(QWidget):
 
         self.save_password(password)
 
+        self.process_pdf(file_path, password)
+
+    def process_pdf(self, file_path, password):
         try:
             with open(file_path, "rb") as file:
                 reader = PyPDF2.PdfReader(file)
@@ -87,7 +79,7 @@ class PDFPasswordRemover(QWidget):
                         file_path = file_path.replace(".PDF", "_no_password.pdf")
                     elif ".pdf" in file_path:
                         file_path = file_path.replace(".pdf", "_no_password.pdf")
-
+                            
                     output_path, _ = QFileDialog.getSaveFileName(self, "Salva PDF", file_path, "PDF files (*.pdf)")
                     if output_path:
                         with open(output_path, "wb") as output_file:
@@ -98,10 +90,20 @@ class PDFPasswordRemover(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Errore", f"Si è verificato un errore: {e}")
 
-    def remove_password(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Seleziona PDF", "", "PDF files (*.pdf)")
-        if file_path:
-            self.process_pdf(file_path)
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            file_path = url.toLocalFile()
+            if file_path.endswith('.pdf') or file_path.endswith('.PDF'):
+                password = self.password_entry.text()
+                if not password:
+                    QMessageBox.critical(self, "Errore", "Inserisci la password del PDF.")
+                    return
+                self.save_password(password)
+                self.process_pdf(file_path, password)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
